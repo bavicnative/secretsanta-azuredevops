@@ -1,0 +1,53 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - AzureDevOps/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  terraformVersion: '1.6.0'
+  azureServiceConnection: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'
+  tfVarsFile: 'terraform.tfvars'
+
+stages:
+- stage: Deploy_VM
+  jobs:
+  - job: Terraform
+    steps:
+    - task: UseTerraform@1
+      inputs:
+        terraformVersion: '$(terraformVersion)'
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Logged into Azure..."
+          az account show
+
+    - script: |
+        echo "Initializing Terraform..."
+        terraform init
+      displayName: 'Terraform Init'
+
+    - script: |
+        echo "Validating Terraform..."
+        terraform validate
+      displayName: 'Terraform Validate'
+
+    - script: |
+        echo "Planning Terraform..."
+        terraform plan -var "admin_password=$(admin_password)" -var-file="$(tfVarsFile)" -out=tfplan.out
+      displayName: 'Terraform Plan'
+
+    - script: |
+        echo "Applying Terraform..."
+        terraform apply -auto-approve tfplan.out
+      displayName: 'Terraform Apply'
