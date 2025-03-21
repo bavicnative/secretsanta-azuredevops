@@ -11,7 +11,7 @@ pool:
 
 variables:
   azureServiceConnection: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'  # Update with your actual connection name
-  tfVarsFile: 'terraform.tfvars'
+  tfVarsFile: 'AzureDevOps\Infrastructure\azure-vm\terraform.tfvars'
   terraformVersion: '1.6.0'
 
 stages:
