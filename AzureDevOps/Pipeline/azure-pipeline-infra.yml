@@ -16,8 +16,8 @@ variables:
     value: '1.6.0'
   - name: terraformWorkingDirectory
     value: 'AzureDevOps/Infrastructure/azure-vm'
-  - name: runDestroy        # 🆕 Control destroy step
-    value: 'false'
+  - name: runDestroy
+    value: 'false'  # Toggle destroy step
 
 stages:
 - stage: Deploy_VM
@@ -25,36 +25,41 @@ stages:
   - job: Terraform
     steps:
 
+    # 🔐 Azure login (required for Terraform backend + az CLI auth)
     - task: AzureCLI@2
-      displayName: '🔐 Azure Login'
+      displayName: '🔐 Azure Login for Terraform'
       inputs:
         azureSubscription: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Logged in to Azure..."
+          echo "✅ Logged in to Azure"
           az account show
 
+    # 📦 Install Terraform
     - script: |
-        echo "⬇️ Installing Terraform $(terraformVersion)..."
+        echo "⬇️ Installing Terraform v$(terraformVersion)..."
         curl -sLo terraform.zip https://releases.hashicorp.com/terraform/$(terraformVersion)/terraform_$(terraformVersion)_linux_amd64.zip
         unzip terraform.zip
         sudo mv terraform /usr/local/bin/
         terraform -version
       displayName: '📦 Install Terraform CLI'
 
+    # 🔧 Terraform Init
     - script: |
         echo "📁 Initializing Terraform..."
         terraform init
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🔧 Terraform Init'
 
+    # ✅ Validate Terraform Config
     - script: |
         echo "🔍 Validating Terraform..."
         terraform validate
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '✅ Terraform Validate'
 
+    # 📝 Terraform Plan
     - script: |
         echo "🧠 Planning Terraform..."
         export TF_SUBSCRIPTION_ID="$(subscription_id)"
@@ -80,14 +85,9 @@ stages:
         tenant_id: $(tenant_id)
         admin_password: $(admin_password)
 
+    # 🚀 Terraform Apply
     - script: |
         echo "🚀 Applying Terraform..."
-        export TF_SUBSCRIPTION_ID="$(subscription_id)"
-        export TF_CLIENT_ID="$(client_id)"
-        export TF_CLIENT_SECRET="$(client_secret)"
-        export TF_TENANT_ID="$(tenant_id)"
-        export TF_ADMIN_PASSWORD="$(admin_password)"
-
         terraform apply -auto-approve tfplan.out
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🚀 Terraform Apply'
@@ -98,27 +98,22 @@ stages:
         tenant_id: $(tenant_id)
         admin_password: $(admin_password)
 
+    # 🧹 Terraform Destroy (Optional)
     - script: |
         echo "🧹 Destroying Terraform-managed infrastructure..."
-        export TF_SUBSCRIPTION_ID="$(subscription_id)"
-        export TF_CLIENT_ID="$(client_id)"
-        export TF_CLIENT_SECRET="$(client_secret)"
-        export TF_TENANT_ID="$(tenant_id)"
-        export TF_ADMIN_PASSWORD="$(admin_password)"
-
         terraform destroy -auto-approve \
-          -var "subscription_id=$TF_SUBSCRIPTION_ID" \
-          -var "client_id=$TF_CLIENT_ID" \
-          -var "client_secret=$TF_CLIENT_SECRET" \
-          -var "tenant_id=$TF_TENANT_ID" \
-          -var "admin_password=$TF_ADMIN_PASSWORD" \
+          -var "subscription_id=$(subscription_id)" \
+          -var "client_id=$(client_id)" \
+          -var "client_secret=$(client_secret)" \
+          -var "tenant_id=$(tenant_id)" \
+          -var "admin_password=$(admin_password)" \
           -var-file="terraform.tfvars"
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🧹 Terraform Destroy'
+      condition: eq(variables['runDestroy'], 'true')
       env:
         subscription_id: $(subscription_id)
         client_id: $(client_id)
         client_secret: $(client_secret)
         tenant_id: $(tenant_id)
         admin_password: $(admin_password)
-      condition: eq(variables['runDestroy'], 'true')   # ✅ Conditional execution
