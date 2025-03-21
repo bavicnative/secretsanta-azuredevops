@@ -61,18 +61,21 @@ stages:
     - script: |
         echo "🧠 Planning Terraform..."
         terraform plan \
-          -var "subscription_id=$(subscription_id)" \
-          -var "client_id=$(client_id)" \
-          -var "client_secret=$(client_secret)" \
-          -var "tenant_id=$(tenant_id)" \
-          -var "admin_password=$(admin_password)" \
+          -var "subscription_id=$TF_SUBSCRIPTION_ID" \
+          -var "client_id=$TF_CLIENT_ID" \
+          -var "client_secret=$TF_CLIENT_SECRET" \
+          -var "tenant_id=$TF_TENANT_ID" \
+          -var "admin_password=$TF_ADMIN_PASSWORD" \
           -var-file="terraform.tfvars" \
           -out=tfplan.out
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '📝 Terraform Plan'
       env:
-        client_secret: $(client_secret)  # 🔐 Ensure secrets are passed securely
-        admin_password: $(admin_password)
+        TF_SUBSCRIPTION_ID: $(subscription_id)
+        TF_CLIENT_ID: $(client_id)
+        TF_CLIENT_SECRET: $(client_secret)
+        TF_TENANT_ID: $(tenant_id)
+        TF_ADMIN_PASSWORD: $(admin_password)
 
     # 🚀 Apply Terraform Changes
     - script: |
@@ -81,5 +84,8 @@ stages:
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🚀 Terraform Apply'
       env:
-        client_secret: $(client_secret)  # 🔐 Ensure secrets are passed securely
-        admin_password: $(admin_password)
+        TF_SUBSCRIPTION_ID: $(subscription_id)
+        TF_CLIENT_ID: $(client_id)
+        TF_CLIENT_SECRET: $(client_secret)
+        TF_TENANT_ID: $(tenant_id)
+        TF_ADMIN_PASSWORD: $(admin_password)
