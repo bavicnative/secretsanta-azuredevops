@@ -4,50 +4,56 @@ trigger:
       - main
   paths:
     exclude:
-      - AzureDevOps/*
+      - AzureDevOps/*  # This folder change won't trigger the pipeline
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  terraformVersion: '1.6.0'
-  azureServiceConnection: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'
+  azureServiceConnection: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'  # Update with your actual connection name
   tfVarsFile: 'terraform.tfvars'
+  terraformVersion: '1.6.0'
 
 stages:
 - stage: Deploy_VM
   jobs:
   - job: Terraform
     steps:
-    - task: UseTerraform@1
-      inputs:
-        terraformVersion: '$(terraformVersion)'
 
     - task: AzureCLI@2
+      displayName: '🔐 Azure Login'
       inputs:
         azureSubscription: '$(azureServiceConnection)'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Logged into Azure..."
+          echo "Logged in to Azure:"
           az account show
 
     - script: |
-        echo "Initializing Terraform..."
+        echo "⬇️ Installing Terraform $(terraformVersion)..."
+        curl -sLo terraform.zip https://releases.hashicorp.com/terraform/$(terraformVersion)/terraform_$(terraformVersion)_linux_amd64.zip
+        unzip terraform.zip
+        sudo mv terraform /usr/local/bin/
+        terraform -version
+      displayName: '📦 Install Terraform CLI'
+
+    - script: |
+        echo "📁 Initializing Terraform..."
         terraform init
-      displayName: 'Terraform Init'
+      displayName: '🔧 Terraform Init'
 
     - script: |
-        echo "Validating Terraform..."
+        echo "🔍 Validating Terraform..."
         terraform validate
-      displayName: 'Terraform Validate'
+      displayName: '✅ Terraform Validate'
 
     - script: |
-        echo "Planning Terraform..."
+        echo "🧠 Planning Terraform..."
         terraform plan -var "admin_password=$(admin_password)" -var-file="$(tfVarsFile)" -out=tfplan.out
-      displayName: 'Terraform Plan'
+      displayName: '📝 Terraform Plan'
 
     - script: |
-        echo "Applying Terraform..."
+        echo "🚀 Applying Terraform..."
         terraform apply -auto-approve tfplan.out
-      displayName: 'Terraform Apply'
+      displayName: '🚀 Terraform Apply'
