@@ -17,7 +17,7 @@ variables:
   - name: terraformWorkingDirectory
     value: 'AzureDevOps/Infrastructure/azure-vm'
   - name: runDestroy
-    value: 'false'  # Toggle destroy step
+    value: 'false'  # Set to 'true' to enable destroy step
 
 stages:
 - stage: Deploy_VM
@@ -25,18 +25,7 @@ stages:
   - job: Terraform
     steps:
 
-    # 🔐 Azure login (required for Terraform backend + az CLI auth)
-    - task: AzureCLI@2
-      displayName: '🔐 Azure Login for Terraform'
-      inputs:
-        azureSubscription: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          echo "✅ Logged in to Azure"
-          az account show
-
-    # 📦 Install Terraform
+    # 📦 Install Terraform CLI
     - script: |
         echo "⬇️ Installing Terraform v$(terraformVersion)..."
         curl -sLo terraform.zip https://releases.hashicorp.com/terraform/$(terraformVersion)/terraform_$(terraformVersion)_linux_amd64.zip
@@ -45,12 +34,18 @@ stages:
         terraform -version
       displayName: '📦 Install Terraform CLI'
 
-    # 🔧 Terraform Init
-    - script: |
-        echo "📁 Initializing Terraform..."
-        terraform init
-      workingDirectory: $(terraformWorkingDirectory)
-      displayName: '🔧 Terraform Init'
+    # 🔧 Terraform Init (inside Azure login context)
+    - task: AzureCLI@2
+      displayName: '🔐 Azure Login + 🔧 Terraform Init'
+      inputs:
+        azureSubscription: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        workingDirectory: $(terraformWorkingDirectory)
+        inlineScript: |
+          echo "✅ Logged into Azure"
+          echo "📁 Running terraform init..."
+          terraform init
 
     # ✅ Validate Terraform Config
     - script: |
