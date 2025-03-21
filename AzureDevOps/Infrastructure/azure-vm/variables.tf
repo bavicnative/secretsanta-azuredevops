@@ -39,9 +39,3 @@ variable "admin_password" {
   type        = string
   sensitive   = true
 }
-
-variable "azureServiceConnection"{
-  description = "service_connection"
-  type        = string
-  sensitive   = true
-}
