@@ -11,8 +11,8 @@ pool:
 
 variables:
   - group: secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1  # ✅ Link to your Azure DevOps variable group
-  terraformVersion: '1.6.0'
-  terraformWorkingDirectory: 'AzureDevOps/Infrastructure/azure-vm'
+    terraformVersion: '1.6.0'
+    terraformWorkingDirectory: 'AzureDevOps/Infrastructure/azure-vm'
 
 stages:
 - stage: Deploy_VM
