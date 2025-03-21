@@ -10,9 +10,13 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1  # ✅ Link to your Azure DevOps variable group
-    terraformVersion: '1.6.0'
-    terraformWorkingDirectory: 'AzureDevOps/Infrastructure/azure-vm'
+  - group: secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1  # ✅ Link to Azure DevOps variable group
+
+  # ✅ Define Terraform-specific variables separately
+  - name: terraformVersion
+    value: '1.6.0'
+  - name: terraformWorkingDirectory
+    value: 'AzureDevOps/Infrastructure/azure-vm'
 
 stages:
 - stage: Deploy_VM
