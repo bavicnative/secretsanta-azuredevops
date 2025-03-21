@@ -38,8 +38,9 @@ stages:
     - task: AzureCLI@2
       displayName: '🔐 Azure Login + 🔧 Terraform Init'
       inputs:
+        azureSubscription: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'
         scriptType: 'bash'
-        azureSubscription: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1' 
+        scriptLocation: 'inlineScript'  # ✅ This was missing
         workingDirectory: $(terraformWorkingDirectory)
         inlineScript: |
           echo "✅ Logged into Azure"
