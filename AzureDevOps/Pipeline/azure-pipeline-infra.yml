@@ -10,9 +10,9 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureServiceConnection: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'  # Update with your service connection
+  - group: secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1  # ✅ Link to your Azure DevOps variable group
   terraformVersion: '1.6.0'
-  terraformWorkingDirectory: 'AzureDevOps/Infrastructure/azure-vm'  # ✅ Updated path
+  terraformWorkingDirectory: 'AzureDevOps/Infrastructure/azure-vm'
 
 stages:
 - stage: Deploy_VM
@@ -20,7 +20,6 @@ stages:
   - job: Terraform
     steps:
 
-    # 🔐 Authenticate to Azure
     - task: AzureCLI@2
       displayName: '🔐 Azure Login'
       inputs:
@@ -28,10 +27,9 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Logged in to Azure:"
+          echo "Logged in to Azure..."
           az account show
 
-    # 📦 Install Terraform
     - script: |
         echo "⬇️ Installing Terraform $(terraformVersion)..."
         curl -sLo terraform.zip https://releases.hashicorp.com/terraform/$(terraformVersion)/terraform_$(terraformVersion)_linux_amd64.zip
@@ -40,7 +38,6 @@ stages:
         terraform -version
       displayName: '📦 Install Terraform CLI'
 
-    # 🔧 Initialize Terraform
     - script: |
         echo "📂 Changing to Terraform directory..."
         cd $(terraformWorkingDirectory)
@@ -50,16 +47,20 @@ stages:
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🔧 Terraform Init'
 
-    # ✅ Validate Terraform files
     - script: |
         echo "🔍 Validating Terraform..."
         terraform validate
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '✅ Terraform Validate'
 
-    # 🔑 Securely Pass Subscription and Authentication Variables
     - script: |
         echo "🧠 Planning Terraform..."
+        export TF_SUBSCRIPTION_ID="$(subscription_id)"
+        export TF_CLIENT_ID="$(client_id)"
+        export TF_CLIENT_SECRET="$(client_secret)"
+        export TF_TENANT_ID="$(tenant_id)"
+        export TF_ADMIN_PASSWORD="$(admin_password)"
+
         terraform plan \
           -var "subscription_id=$TF_SUBSCRIPTION_ID" \
           -var "client_id=$TF_CLIENT_ID" \
@@ -71,21 +72,26 @@ stages:
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '📝 Terraform Plan'
       env:
-        TF_SUBSCRIPTION_ID: $(subscription_id)
-        TF_CLIENT_ID: $(client_id)
-        TF_CLIENT_SECRET: $(client_secret)
-        TF_TENANT_ID: $(tenant_id)
-        TF_ADMIN_PASSWORD: $(admin_password)
+        subscription_id: $(subscription_id)
+        client_id: $(client_id)
+        client_secret: $(client_secret)
+        tenant_id: $(tenant_id)
+        admin_password: $(admin_password)
 
-    # 🚀 Apply Terraform Changes
     - script: |
         echo "🚀 Applying Terraform..."
+        export TF_SUBSCRIPTION_ID="$(subscription_id)"
+        export TF_CLIENT_ID="$(client_id)"
+        export TF_CLIENT_SECRET="$(client_secret)"
+        export TF_TENANT_ID="$(tenant_id)"
+        export TF_ADMIN_PASSWORD="$(admin_password)"
+
         terraform apply -auto-approve tfplan.out
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🚀 Terraform Apply'
       env:
-        TF_SUBSCRIPTION_ID: $(subscription_id)
-        TF_CLIENT_ID: $(client_id)
-        TF_CLIENT_SECRET: $(client_secret)
-        TF_TENANT_ID: $(tenant_id)
-        TF_ADMIN_PASSWORD: $(admin_password)
+        subscription_id: $(subscription_id)
+        client_id: $(client_id)
+        client_secret: $(client_secret)
+        tenant_id: $(tenant_id)
+        admin_password: $(admin_password)
