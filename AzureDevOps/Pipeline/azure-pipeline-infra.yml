@@ -4,15 +4,15 @@ trigger:
       - main
   paths:
     exclude:
-      - AzureDevOps/*  # This folder change won't trigger the pipeline
+      - AzureDevOps/*  # Ignore changes in this folder
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureServiceConnection: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'  # Update with your actual connection name
-  tfVarsFile: 'Infrastructure/azure-vm/terraform.tfvars'
+  azureServiceConnection: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'  # Update with your service connection
   terraformVersion: '1.6.0'
+  terraformWorkingDirectory: 'AzureDevOps/Infrastructure/azure-vm'  # ✅ Updated path
 
 stages:
 - stage: Deploy_VM
@@ -39,21 +39,30 @@ stages:
       displayName: '📦 Install Terraform CLI'
 
     - script: |
+        echo "📂 Changing to Terraform directory..."
+        cd $(terraformWorkingDirectory)
+
         echo "📁 Initializing Terraform..."
         terraform init
+      workingDirectory: $(terraformWorkingDirectory)
       displayName: '🔧 Terraform Init'
 
     - script: |
         echo "🔍 Validating Terraform..."
         terraform validate
+      workingDirectory: $(terraformWorkingDirectory)
       displayName: '✅ Terraform Validate'
 
     - script: |
         echo "🧠 Planning Terraform..."
-        terraform plan -var "admin_password=$(admin_password)" -var-file="$(tfVarsFile)" -out=tfplan.out
+        terraform plan -var "admin_password=${admin_password}" -var-file="terraform.tfvars" -out=tfplan.out
+      workingDirectory: $(terraformWorkingDirectory)
       displayName: '📝 Terraform Plan'
+      env:
+        admin_password: $(admin_password)
 
     - script: |
         echo "🚀 Applying Terraform..."
         terraform apply -auto-approve tfplan.out
+      workingDirectory: $(terraformWorkingDirectory)
       displayName: '🚀 Terraform Apply'
