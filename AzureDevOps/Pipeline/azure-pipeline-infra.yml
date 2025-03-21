@@ -34,20 +34,19 @@ stages:
         terraform -version
       displayName: '📦 Install Terraform CLI'
 
-    # 🔧 Terraform Init (inside Azure login context)
-    - task: AzureCLI@2
-      displayName: '🔐 Azure Login + 🔧 Terraform Init'
-      inputs:
-        azureSubscription: 'secrer-santa-secretsanta-f4465ce8-e6e6-4c46-b979-67aea42c5fb1'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'  # ✅ This was missing
-        workingDirectory: $(terraformWorkingDirectory)
-        inlineScript: |
-          echo "✅ Logged into Azure"
-          echo "📁 Running terraform init..."
-          terraform init
+    # 🔧 Terraform Init using Service Principal
+    - script: |
+        echo "📁 Initializing Terraform with Service Principal..."
+        terraform init
+      workingDirectory: $(terraformWorkingDirectory)
+      displayName: '🔧 Terraform Init (Service Principal Auth)'
+      env:
+        ARM_CLIENT_ID: $(client_id)
+        ARM_CLIENT_SECRET: $(client_secret)
+        ARM_SUBSCRIPTION_ID: $(subscription_id)
+        ARM_TENANT_ID: $(tenant_id)
 
-    # ✅ Validate Terraform Config
+    # ✅ Validate Terraform
     - script: |
         echo "🔍 Validating Terraform..."
         terraform validate
@@ -56,46 +55,38 @@ stages:
 
     # 📝 Terraform Plan
     - script: |
-        echo "🧠 Planning Terraform..."
-        export TF_SUBSCRIPTION_ID="$(subscription_id)"
-        export TF_CLIENT_ID="$(client_id)"
-        export TF_CLIENT_SECRET="$(client_secret)"
-        export TF_TENANT_ID="$(tenant_id)"
-        export TF_ADMIN_PASSWORD="$(admin_password)"
-
+        echo "🧠 Running Terraform Plan..."
         terraform plan \
-          -var "subscription_id=$TF_SUBSCRIPTION_ID" \
-          -var "client_id=$TF_CLIENT_ID" \
-          -var "client_secret=$TF_CLIENT_SECRET" \
-          -var "tenant_id=$TF_TENANT_ID" \
-          -var "admin_password=$TF_ADMIN_PASSWORD" \
+          -var "subscription_id=$(subscription_id)" \
+          -var "client_id=$(client_id)" \
+          -var "client_secret=$(client_secret)" \
+          -var "tenant_id=$(tenant_id)" \
+          -var "admin_password=$(admin_password)" \
           -var-file="terraform.tfvars" \
           -out=tfplan.out
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '📝 Terraform Plan'
       env:
-        subscription_id: $(subscription_id)
-        client_id: $(client_id)
-        client_secret: $(client_secret)
-        tenant_id: $(tenant_id)
-        admin_password: $(admin_password)
+        ARM_CLIENT_ID: $(client_id)
+        ARM_CLIENT_SECRET: $(client_secret)
+        ARM_SUBSCRIPTION_ID: $(subscription_id)
+        ARM_TENANT_ID: $(tenant_id)
 
     # 🚀 Terraform Apply
     - script: |
-        echo "🚀 Applying Terraform..."
+        echo "🚀 Applying Terraform Changes..."
         terraform apply -auto-approve tfplan.out
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🚀 Terraform Apply'
       env:
-        subscription_id: $(subscription_id)
-        client_id: $(client_id)
-        client_secret: $(client_secret)
-        tenant_id: $(tenant_id)
-        admin_password: $(admin_password)
+        ARM_CLIENT_ID: $(client_id)
+        ARM_CLIENT_SECRET: $(client_secret)
+        ARM_SUBSCRIPTION_ID: $(subscription_id)
+        ARM_TENANT_ID: $(tenant_id)
 
-    # 🧹 Terraform Destroy (Optional)
+    # 🧹 Terraform Destroy (conditionally)
     - script: |
-        echo "🧹 Destroying Terraform-managed infrastructure..."
+        echo "🧹 Destroying Terraform Infrastructure..."
         terraform destroy -auto-approve \
           -var "subscription_id=$(subscription_id)" \
           -var "client_id=$(client_id)" \
@@ -107,8 +98,7 @@ stages:
       displayName: '🧹 Terraform Destroy'
       condition: eq(variables['runDestroy'], 'true')
       env:
-        subscription_id: $(subscription_id)
-        client_id: $(client_id)
-        client_secret: $(client_secret)
-        tenant_id: $(tenant_id)
-        admin_password: $(admin_password)
+        ARM_CLIENT_ID: $(client_id)
+        ARM_CLIENT_SECRET: $(client_secret)
+        ARM_SUBSCRIPTION_ID: $(subscription_id)
+        ARM_TENANT_ID: $(tenant_id)
