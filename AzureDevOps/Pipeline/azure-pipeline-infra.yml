@@ -17,7 +17,7 @@ variables:
   - name: terraformWorkingDirectory
     value: 'AzureDevOps/Infrastructure/azure-vm'
   - name: runDestroy
-    value: 'false'  # Set to 'true' to enable destroy step
+    value: 'true'  # Set to 'true' to enable destroy step
 
 stages:
 - stage: Deploy_VM
