@@ -20,6 +20,7 @@ stages:
   - job: Terraform
     steps:
 
+    # 🔐 Authenticate to Azure
     - task: AzureCLI@2
       displayName: '🔐 Azure Login'
       inputs:
@@ -30,6 +31,7 @@ stages:
           echo "Logged in to Azure:"
           az account show
 
+    # 📦 Install Terraform
     - script: |
         echo "⬇️ Installing Terraform $(terraformVersion)..."
         curl -sLo terraform.zip https://releases.hashicorp.com/terraform/$(terraformVersion)/terraform_$(terraformVersion)_linux_amd64.zip
@@ -38,6 +40,7 @@ stages:
         terraform -version
       displayName: '📦 Install Terraform CLI'
 
+    # 🔧 Initialize Terraform
     - script: |
         echo "📂 Changing to Terraform directory..."
         cd $(terraformWorkingDirectory)
@@ -47,22 +50,36 @@ stages:
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🔧 Terraform Init'
 
+    # ✅ Validate Terraform files
     - script: |
         echo "🔍 Validating Terraform..."
         terraform validate
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '✅ Terraform Validate'
 
+    # 🔑 Securely Pass Subscription and Authentication Variables
     - script: |
         echo "🧠 Planning Terraform..."
-        terraform plan -var "admin_password=${admin_password}" -var-file="terraform.tfvars" -out=tfplan.out
+        terraform plan \
+          -var "subscription_id=$(subscription_id)" \
+          -var "client_id=$(client_id)" \
+          -var "client_secret=$(client_secret)" \
+          -var "tenant_id=$(tenant_id)" \
+          -var "admin_password=$(admin_password)" \
+          -var-file="terraform.tfvars" \
+          -out=tfplan.out
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '📝 Terraform Plan'
       env:
+        client_secret: $(client_secret)  # 🔐 Ensure secrets are passed securely
         admin_password: $(admin_password)
 
+    # 🚀 Apply Terraform Changes
     - script: |
         echo "🚀 Applying Terraform..."
         terraform apply -auto-approve tfplan.out
       workingDirectory: $(terraformWorkingDirectory)
       displayName: '🚀 Terraform Apply'
+      env:
+        client_secret: $(client_secret)  # 🔐 Ensure secrets are passed securely
+        admin_password: $(admin_password)
